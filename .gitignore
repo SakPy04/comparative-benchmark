@@ -1,1 +1,8 @@
 train_sample/
+__pycache__/
+.pytest_cache/
+.vscode/
+*.pyc
+*.pyo
+*.egg-info/
+.DS_Store
