@@ -1,0 +1,14 @@
+{
+  "baseline": {
+    "error": "Phase directory not found: /content/pet_evaluation_pipeline/dataset/train"
+  },
+  "pix2pix": {
+    "error": "Phase directory not found: /content/pet_evaluation_pipeline/dataset/train"
+  },
+  "cycle_gan": {
+    "error": "Phase directory not found: /content/pet_evaluation_pipeline/dataset/train"
+  },
+  "i2i_mamba": {
+    "error": "Phase directory not found: /content/pet_evaluation_pipeline/dataset/train"
+  }
+}
