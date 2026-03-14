@@ -25,10 +25,12 @@ def compute_baseline_metrics(
 ) -> Dict[str, float]:
     
     baseline_metrics: Dict[str, List[float]] = {
+        "nmse": [],
         "psnr": [],
         "ssim": [],
         "lpips": [],
-        "gmsd": []
+        "gmsd": [],
+        "vifp": []
     }
     
     n_batches = len(dataset)
@@ -40,22 +42,28 @@ def compute_baseline_metrics(
             if max_batches is not None and batch_idx >= max_batches:
                 break
             
-            input_img = data["A"].to(device)
-            target_img = data["B"].to(device)
-            
-            batch_metrics = evaluator.evaluate_batch(input_img, target_img)
-            
-            for key in baseline_metrics:
-                if key in batch_metrics and not np.isnan(batch_metrics[key]):
-                    baseline_metrics[key].append(batch_metrics[key])
-            
-            if (batch_idx + 1) % max(1, n_batches // 10) == 0 or batch_idx == 0:
-                print(f"  Processed batch {batch_idx + 1}/{n_batches}")
-                if "psnr" in batch_metrics:
-                    print(f"    PSNR: {batch_metrics['psnr']:.2f} dB | "
-                          f"SSIM: {batch_metrics['ssim']:.4f} | "
-                          f"LPIPS: {batch_metrics['lpips']:.4f} | "
-                          f"GMSD: {batch_metrics['gmsd']:.4f}")
+            try:
+                input_img = data["A"].to(device)
+                target_img = data["B"].to(device)
+                
+                batch_metrics = evaluator.evaluate_batch(input_img, target_img)
+                
+                for key in baseline_metrics:
+                    if key in batch_metrics and not np.isnan(batch_metrics[key]):
+                        baseline_metrics[key].append(batch_metrics[key])
+                
+                if (batch_idx + 1) % max(1, n_batches // 10) == 0 or batch_idx == 0:
+                    print(f"  Processed batch {batch_idx + 1}/{n_batches}")
+                    if "psnr" in batch_metrics:
+                        print(f"    NMSE: {batch_metrics['nmse']:.4f} | "
+                              f"PSNR: {batch_metrics['psnr']:.2f} dB | "
+                              f"SSIM: {batch_metrics['ssim']:.4f} | "
+                              f"LPIPS: {batch_metrics['lpips']:.4f} | "
+                              f"GMSD: {batch_metrics['gmsd']:.4f} | "
+                              f"VIFp: {batch_metrics['vifp']:.4f}")
+            except Exception as e:
+                print(f"  Warning: Skipping batch {batch_idx} due to error: {str(e)[:100]}")
+                continue
     
     baseline_aggregated = aggregate_metrics(baseline_metrics)
     
@@ -83,6 +91,9 @@ def run_baseline_evaluation(
     saved_cwd = os.getcwd()
     saved_argv = sys.argv.copy()
     
+    # Convert to absolute path since we'll change directory
+    abs_data_dir = str(Path(data_dir).resolve())
+    
     try:
         os.chdir(repo_path)
         _clear_repo_modules()
@@ -94,7 +105,7 @@ def run_baseline_evaluation(
         
         sys.argv = [
             "eval",
-            "--dataroot", str(data_dir),
+            "--dataroot", abs_data_dir,
             "--phase", "train",
             "--dataset_mode", "h5_aligned",
             "--model", "pix2pix",

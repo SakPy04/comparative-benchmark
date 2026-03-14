@@ -193,9 +193,58 @@ def compute_gmsd(
     return float(gmsd_val.item())
 
 
-# ============================================================================
-# Helper Functions
-# ============================================================================
+
+def compute_nmse(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    eps: float = 1e-8
+) -> float:
+
+    _validate_tensor_shapes(pred, target, "NMSE")
+    numerator = torch.sum((pred - target) ** 2, dim=(1, 2, 3))
+    denominator = torch.sum(target ** 2, dim=(1, 2, 3)) + eps
+    
+    nmse_per_image = numerator / denominator
+    
+    return float(nmse_per_image.mean().item())
+
+def compute_vifp(
+    pred: torch.Tensor,
+    target: torch.Tensor
+) -> float:
+
+    _validate_tensor_shapes(pred, target, "VIFp")
+    
+    try:
+        from piq import vif_p
+    except ImportError as e:
+        raise ImportError(
+            "piq is required for VIFp computation. "
+            "Install it with: pip install piq"
+        ) from e
+    
+    pred, target = _ensure_compatible(pred, target)
+
+    pred_3ch = _grayscale_to_3channel(pred)
+    target_3ch = _grayscale_to_3channel(target)
+    
+    pred_min, pred_max = pred_3ch.min().item(), pred_3ch.max().item()
+    target_min, target_max = target_3ch.min().item(), target_3ch.max().item()
+    
+    if (pred_min >= -1.0 and pred_max <= 1.0 and
+        target_min >= -1.0 and target_max <= 1.0):
+        if pred_min < 0.0 or target_min < 0.0:
+            pred_3ch = (pred_3ch + 1.0) / 2.0
+            target_3ch = (target_3ch + 1.0) / 2.0
+
+    pred_3ch = torch.clamp(pred_3ch, 0, 1)
+    target_3ch = torch.clamp(target_3ch, 0, 1)
+    
+    with torch.no_grad():
+        vifp_val = vif_p(pred_3ch, target_3ch, reduction='mean')
+    
+    return float(vifp_val.item())
+
 
 def _validate_tensor_shapes(
     pred: torch.Tensor,
@@ -338,6 +387,13 @@ class MetricsEvaluator:
         except ImportError:
             warnings.warn("piq not available. GMSD will not be computed.")
             self._has_gmsd = False
+        
+        try:
+            from piq import vif_p
+            self._has_vifp = True
+        except ImportError:
+            warnings.warn("piq not available. VIFp will not be computed.")
+            self._has_vifp = False
     
     def evaluate_batch(
         self,
@@ -359,7 +415,9 @@ class MetricsEvaluator:
                 "psnr": float,
                 "ssim": float,
                 "lpips": float,
-                "gmsd": float
+                "gmsd": float,
+                "nmse": float,
+                "vifp": float
             }
         """
         results = {}
@@ -385,6 +443,15 @@ class MetricsEvaluator:
         else:
             results["gmsd"] = float('nan')
         
+        # NMSE (always available, pure PyTorch)
+        results["nmse"] = compute_nmse(pred, target)
+        
+        # VIFp
+        if self._has_vifp:
+            results["vifp"] = compute_vifp(pred, target)
+        else:
+            results["vifp"] = float('nan')
+        
         return results
 
 
@@ -408,10 +475,12 @@ def evaluate_batch(
     Returns:
         Dictionary with metric names and values:
         {
+            "nmse": float,
             "psnr": float,
             "ssim": float,
             "lpips": float,
-            "gmsd": float
+            "gmsd": float,
+            "vifp": float
         }
     """
     evaluator = MetricsEvaluator(device=device)

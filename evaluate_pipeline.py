@@ -101,7 +101,10 @@ def main():
     print("SUMMARY")
     print("=" * 70)
 
-    for metric in ["psnr", "ssim", "lpips", "gmsd"]:
+    metrics_to_show = ["nmse", "psnr", "ssim", "lpips", "gmsd", "vifp"]
+    lower_is_better = {"nmse", "lpips", "gmsd"}
+    
+    for metric in metrics_to_show:
         print(f"\n{metric.upper()}:")
         base_key = f"{metric}_mean"
 
@@ -123,7 +126,7 @@ def main():
 
             if has_baseline:
                 delta = mean_val - base_mean
-                if metric in ["lpips", "gmsd"]:
+                if metric in lower_is_better:
                     better = delta < 0
                 else:
                     better = delta > 0

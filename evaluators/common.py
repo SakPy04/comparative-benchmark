@@ -7,7 +7,7 @@ from typing import Dict, List
 import numpy as np
 
 
-METRICS = ["psnr", "ssim", "lpips", "gmsd"]
+METRICS = ["nmse", "psnr", "ssim", "lpips", "gmsd", "vifp"]
 
 
 def _clear_repo_modules() -> None:

@@ -126,10 +126,13 @@ def _build_i2i_opt(
     """
     from options.test_options import TestOptions
 
+    # Convert to absolute path since we'll change directory
+    abs_data_dir = str(Path(data_dir).resolve())
+    
     # Don't append phase subdirectory - use dataroot directly
     sys.argv = [
         "eval",
-        "--dataroot", str(data_dir),
+        "--dataroot", abs_data_dir,
         "--phase", "train",  # Empty phase means no subdirectory appended
         "--model", "i2i_mamba_one",
         "--which_model_netG", "i2i_mamba",
@@ -305,10 +308,12 @@ def run_i2i_mamba_evaluation(
         evaluator = MetricsEvaluator(device=resolved_device)
 
         all_metrics: Dict[str, List[float]] = {
+            "nmse": [],
             "psnr": [],
             "ssim": [],
             "lpips": [],
             "gmsd": [],
+            "vifp": [],
         }
 
         n_batches = batch_count
@@ -345,10 +350,12 @@ def run_i2i_mamba_evaluation(
                     print(f"  Processed batch {batch_idx + 1}/{n_batches}")
                     if "psnr" in batch_metrics:
                         print(
-                            f"    PSNR: {batch_metrics['psnr']:.2f} dB | "
+                            f"    NMSE: {batch_metrics['nmse']:.4f} | "
+                            f"PSNR: {batch_metrics['psnr']:.2f} dB | "
                             f"SSIM: {batch_metrics['ssim']:.4f} | "
                             f"LPIPS: {batch_metrics['lpips']:.4f} | "
-                            f"GMSD: {batch_metrics['gmsd']:.4f}"
+                            f"GMSD: {batch_metrics['gmsd']:.4f} | "
+                            f"VIFp: {batch_metrics['vifp']:.4f}"
                         )
 
         aggregated = aggregate_metrics(all_metrics)
