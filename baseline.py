@@ -87,7 +87,10 @@ def run_baseline_evaluation(
     save_dir: Optional[str] = None,
 ) -> Dict[str, float]:
 
-    repo_path = Path(__file__).parent.parent / "pytorch-CycleGAN-and-pix2pix"
+    repo_path = Path(__file__).parent / "pytorch-CycleGAN-and-pix2pix"
+    if not repo_path.exists():
+        raise FileNotFoundError(f"Repository path not found: {repo_path}")
+    
     saved_cwd = os.getcwd()
     saved_argv = sys.argv.copy()
     
@@ -121,6 +124,7 @@ def run_baseline_evaluation(
 
         opt = TrainOptions().parse()
         opt.device = torch.device(device if device else ('cuda' if torch.cuda.is_available() else 'cpu'))
+        opt.dataroot = abs_data_dir  # Ensure absolute path is used
         
         dataset = create_dataset(opt)
         evaluator = MetricsEvaluator(device=opt.device)

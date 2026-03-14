@@ -146,6 +146,8 @@ def _build_i2i_opt(
         "--output_nc", "1",
         "--fineSize", "256",
         "--loadSize", "256",
+        "--crop_size_h", "256",
+        "--crop_size_w", "256",
     ]
 
     if resolved_device.type == "cpu":
@@ -238,6 +240,9 @@ def run_i2i_mamba_evaluation(
       - dependencies like ml_collections and mamba_ssm are installed
     """
     repo_path = Path(__file__).parent.parent / "I2I-Mamba"
+    if not repo_path.exists():
+        raise FileNotFoundError(f"Repository path not found: {repo_path}")
+    
     models_dir = repo_path / "models"
 
     saved_cwd = os.getcwd()
