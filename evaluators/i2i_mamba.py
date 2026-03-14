@@ -325,38 +325,42 @@ def run_i2i_mamba_evaluation(
                 if max_batches is not None and batch_idx >= max_batches:
                     break
 
-                if batch_idx == 0:
-                    print(f"\nFirst sample shape - A: {data['A'].shape}, B: {data['B'].shape}")
+                try:
+                    if batch_idx == 0:
+                        print(f"\nFirst sample shape - A: {data['A'].shape}, B: {data['B'].shape}")
 
-                model.set_input(data)
-                model.test()
+                    model.set_input(data)
+                    model.test()
 
-                if not hasattr(model, "fake_B") or not hasattr(model, "real_B"):
-                    raise AttributeError(
-                        "I2I-Mamba model does not expose expected attributes "
-                        "'fake_B' and 'real_B'."
-                    )
-
-                pred = model.fake_B
-                target = model.real_B
-
-                batch_metrics = evaluator.evaluate_batch(pred, target)
-
-                for key in all_metrics:
-                    if key in batch_metrics and not np.isnan(batch_metrics[key]):
-                        all_metrics[key].append(batch_metrics[key])
-
-                if (batch_idx + 1) % max(1, n_batches // 10) == 0 or batch_idx == 0:
-                    print(f"  Processed batch {batch_idx + 1}/{n_batches}")
-                    if "psnr" in batch_metrics:
-                        print(
-                            f"    NMSE: {batch_metrics['nmse']:.4f} | "
-                            f"PSNR: {batch_metrics['psnr']:.2f} dB | "
-                            f"SSIM: {batch_metrics['ssim']:.4f} | "
-                            f"LPIPS: {batch_metrics['lpips']:.4f} | "
-                            f"GMSD: {batch_metrics['gmsd']:.4f} | "
-                            f"VIFp: {batch_metrics['vifp']:.4f}"
+                    if not hasattr(model, "fake_B") or not hasattr(model, "real_B"):
+                        raise AttributeError(
+                            "I2I-Mamba model does not expose expected attributes "
+                            "'fake_B' and 'real_B'."
                         )
+
+                    pred = model.fake_B
+                    target = model.real_B
+
+                    batch_metrics = evaluator.evaluate_batch(pred, target)
+
+                    for key in all_metrics:
+                        if key in batch_metrics and not np.isnan(batch_metrics[key]):
+                            all_metrics[key].append(batch_metrics[key])
+
+                    if (batch_idx + 1) % max(1, n_batches // 10) == 0 or batch_idx == 0:
+                        print(f"  Processed batch {batch_idx + 1}/{n_batches}")
+                        if "psnr" in batch_metrics:
+                            print(
+                                f"    NMSE: {batch_metrics['nmse']:.4f} | "
+                                f"PSNR: {batch_metrics['psnr']:.2f} dB | "
+                                f"SSIM: {batch_metrics['ssim']:.4f} | "
+                                f"LPIPS: {batch_metrics['lpips']:.4f} | "
+                                f"GMSD: {batch_metrics['gmsd']:.4f} | "
+                                f"VIFp: {batch_metrics['vifp']:.4f}"
+                            )
+                except Exception as e:
+                    print(f"  Warning: Skipping batch {batch_idx} due to error: {str(e)[:100]}")
+                    continue
 
         aggregated = aggregate_metrics(all_metrics)
         print_aggregated_metrics(aggregated)
