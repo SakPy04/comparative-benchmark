@@ -146,8 +146,6 @@ def _build_i2i_opt(
         "--output_nc", "1",
         "--fineSize", "256",
         "--loadSize", "256",
-        "--crop_size_h", "256",
-        "--crop_size_w", "256",
     ]
 
     if resolved_device.type == "cpu":
@@ -158,6 +156,10 @@ def _build_i2i_opt(
 
     opt = TestOptions().parse()
     opt.device = resolved_device
+    
+    # Set H5 dataloader parameters directly (not via command line)
+    opt.crop_size_h = 256
+    opt.crop_size_w = 256
 
     # custom args for your H5 dataset fallback
     opt.input_key = input_key
